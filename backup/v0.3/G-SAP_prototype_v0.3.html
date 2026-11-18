@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>G-SAP Webservice 화면 프로토타입</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: 상단 프로토타입 바(화면·기기·역할 전환) + 기기 프레임 안에 실제 서비스 화면. 카드형, 컨테이너 쿼리로 데스크톱/태블릿/모바일 대응 */
+:root{
+  --bg:#eef1ef; --surface:#ffffff; --surface-2:#f5f7f6; --ink:#17201c; --muted:#5d6b65; --line:#d9e0dc;
+  --accent:#0d6b4f; --accent-ink:#ffffff; --accent-soft:#e3f1ec;
+  --warn:#b45309; --warn-soft:#fdf0e1; --bad:#b42318; --bad-soft:#fde8e6; --good:#127a4a; --good-soft:#e2f4ea;
+  --font-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --r:12px; --shadow:0 1px 2px rgba(20,40,30,.06),0 4px 16px rgba(20,40,30,.06);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1513; --surface:#18201d; --surface-2:#1f2925; --ink:#e7eeea; --muted:#9aaba3; --line:#2d3934;
+  --accent:#3fbf8f; --accent-ink:#06120d; --accent-soft:#173328;
+  --warn:#f0a85a; --warn-soft:#3a2a17; --bad:#f2847a; --bad-soft:#3d1d1a; --good:#5ad19a; --good-soft:#163526;
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f1513; --surface:#18201d; --surface-2:#1f2925; --ink:#e7eeea; --muted:#9aaba3; --line:#2d3934;
+  --accent:#3fbf8f; --accent-ink:#06120d; --accent-soft:#173328;
+  --warn:#f0a85a; --warn-soft:#3a2a17; --bad:#f2847a; --bad-soft:#3d1d1a; --good:#5ad19a; --good-soft:#163526;
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.5}
+h1,h2,h3{text-wrap:balance;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--font-mono);font-size:.92em}
+
+/* 프로토타입 바 */
+.proto-bar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.proto-bar .tag{font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:99px}
+.proto-bar nav{display:flex;flex-wrap:wrap;gap:4px}
+.proto-bar nav a{font-size:13px;text-decoration:none;color:var(--muted);padding:4px 10px;border-radius:8px}
+.proto-bar nav a[aria-current="page"]{background:var(--ink);color:var(--surface)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:4px 10px;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.proto-bar label{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.proto-bar select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 6px}
+.spacer{flex:1}
+
+.stage{padding:20px 16px 48px;display:flex;justify-content:center}
+.device{width:100%;max-width:1280px;background:var(--bg);container-type:inline-size;transition:max-width .25s}
+.device[data-device="tablet"]{max-width:1024px;border:10px solid var(--ink);border-radius:28px;overflow:hidden}
+.device[data-device="mobile"]{max-width:390px;border:10px solid var(--ink);border-radius:36px;overflow:hidden}
+@media (prefers-reduced-motion:reduce){.device{transition:none}}
+
+/* 앱 셸 */
+.app-head{display:flex;align-items:center;gap:16px;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:13px;font-weight:700}
+.menu{display:flex;gap:2px;flex:1;overflow-x:auto}
+.menu a{white-space:nowrap;text-decoration:none;color:var(--muted);padding:6px 12px;border-radius:8px;font-weight:500}
+.menu a.on{color:var(--accent);background:var(--accent-soft)}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-weight:600;font-size:12px}
+.role-chip{font-size:11px;padding:1px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.view{padding:20px}
+.screen{display:none}
+.screen.on{display:block}
+.page-title{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}
+.page-title h1{font-size:22px;letter-spacing:-.02em}
+.page-title p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.card h2{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 .sub{font-weight:400;color:var(--muted);font-size:12px}
+.grid{display:grid;gap:16px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;font-weight:600}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill.wait{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--good-soft);color:var(--good)}
+.pill.no{background:var(--bad-soft);color:var(--bad)}
+.pill.info{background:var(--accent-soft);color:var(--accent)}
+.pill.mute{background:var(--surface-2);color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+.sample{font-size:11.5px;color:var(--warn);background:var(--warn-soft);padding:2px 8px;border-radius:6px}
+
+/* 폼 */
+.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:12px;color:var(--muted);font-weight:500}
+.field label .req{color:var(--bad)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+.field input[readonly]{background:var(--surface-2);color:var(--muted)}
+.field .hint{font-size:11.5px;color:var(--muted)}
+.field.err input{border-color:var(--bad)}
+.field.err .hint{color:var(--bad)}
+.inline{display:flex;gap:6px}
+.span2{grid-column:span 2}
+.span3{grid-column:1/-1}
+
+.stepper{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto}
+.step{flex:1;min-width:120px;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--muted);text-align:left}
+.step b{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--surface-2)}
+.step[aria-current="step"]{border-color:var(--accent);color:var(--ink)}
+.step[aria-current="step"] b{background:var(--accent);color:var(--accent-ink)}
+.step.done b{background:var(--accent-soft);color:var(--accent)}
+.steppane{display:none}
+.steppane.on{display:grid;gap:16px}
+.form-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-top:16px}
+
+table{border-collapse:collapse;width:100%}
+.tbl-wrap{overflow-x:auto}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600;background:var(--surface-2)}
+td.r,th.r{text-align:right}
+td input{border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:120px;text-align:right;background:var(--surface)}
+td input[type=checkbox]{width:auto;padding:0}
+tfoot td{font-weight:700;background:var(--accent-soft)}
+.check-row{display:flex;gap:16px;flex-wrap:wrap}
+
+/* 홈 */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{padding:14px 16px}
+.kpi .k{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.kpi .d{font-size:12px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tile{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;padding:16px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
+.tile:hover{border-color:var(--accent)}
+.tile .t{font-weight:700;font-size:15px}
+.tile .src{font-size:11.5px;color:var(--muted)}
+.tile.locked{opacity:.5;pointer-events:none;box-shadow:none;border-style:dashed}
+
+/* 결재 */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.tabs{display:inline-flex;gap:4px;background:var(--surface-2);padding:3px;border-radius:10px}
+.tabs button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.tabs .cnt{font-size:11px;color:var(--warn);margin-left:4px}
+.delta.up{color:var(--bad)} .delta.down{color:var(--good)}
+tr.flag td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+tr.sel td{background:var(--accent-soft)}
+.appr-cards{display:none;gap:10px}
+.appr-table th:first-child,.appr-table td:first-child{width:36px;padding-right:0}
+.appr-table th,.appr-table td{padding:8px}
+.appr-card{padding:12px 14px;display:grid;gap:6px}
+.appr-card.flag{border-left:4px solid var(--bad)}
+.appr-card .row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.timeline li{display:grid;grid-template-columns:14px 1fr;gap:10px}
+.timeline .dot{width:12px;height:12px;border-radius:50%;margin-top:4px;background:var(--line)}
+.timeline .dot.on{background:var(--accent)}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:4px 8px;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0}
+
+/* 기사 */
+.consent{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:10px;background:var(--accent-soft);font-size:13px}
+.stop{display:grid;gap:8px;padding:14px}
+.stop .head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stop .seq{width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.stop .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stop .acts button{padding:10px 0}
+.loc{font-size:12px;color:var(--muted)}
+
+/* SCM */
+.board{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}
+.route{width:100%;height:auto;display:block;background:var(--surface-2);border-radius:10px}
+.veh{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+.veh:last-child{border-bottom:0}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar i.late{background:var(--warn)}
+
+/* 고객 조회 */
+.track{max-width:440px;margin:0 auto;display:grid;gap:14px}
+.track .big{font-size:20px;font-weight:700}
+.stages{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;font-size:12px}
+.stages div{padding-top:10px;border-top:4px solid var(--line);color:var(--muted)}
+.stages div.on{border-color:var(--accent);color:var(--ink);font-weight:600}
+
+/* 로그인 */
+.login{display:grid;grid-template-columns:1.1fr 1fr;min-height:640px}
+.login-brand{background:var(--accent);color:var(--accent-ink);padding:48px 40px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;position:relative;overflow:hidden}
+.login-brand h1{font-size:30px;letter-spacing:-.03em;line-height:1.25}
+.login-brand p{opacity:.85;max-width:38ch}
+.login-brand ul{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.login-brand li{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.12)}
+.login-brand .lines{position:absolute;right:-60px;bottom:-60px;width:320px;opacity:.18}
+.login-form{display:grid;place-items:center;padding:40px 24px;background:var(--surface)}
+.login-box{width:100%;max-width:360px;display:grid;gap:16px}
+.login-box h2{font-size:22px}
+.sso{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;border-radius:12px;border:1px solid var(--ink);background:var(--ink);color:var(--surface);font-weight:600;font-size:15px}
+.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:11.5px;color:var(--muted);text-align:center}
+.flow span{padding:6px 4px;border:1px dashed var(--line);border-radius:8px}
+.secure{font-size:12px;color:var(--muted);display:grid;gap:4px;padding:12px;border-radius:10px;background:var(--surface-2)}
+
+.denied{text-align:center;padding:48px 16px;display:grid;gap:10px;justify-items:center}
+
+/* 다이얼로그·토스트 */
+.dlg-back{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;place-items:center;z-index:50;padding:16px}
+.dlg-back.on{display:grid}
+.dlg{background:var(--surface);border-radius:14px;padding:20px;width:100%;max-width:420px;display:grid;gap:12px}
+.dlg textarea{min-height:90px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-size:13px;display:none;z-index:60;max-width:90vw}
+.toast.on{display:block}
+
+/* 반응형: 프레임 폭 기준 */
+@container (max-width:1060px){
+  .split{grid-template-columns:1fr}
+  .board{grid-template-columns:1fr}
+  .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .span2{grid-column:1/-1}
+}
+@container (max-width:720px){
+  .login{grid-template-columns:1fr}
+  .login-brand{padding:28px 22px}
+  .login-brand h1{font-size:24px}
+  .login-brand ul{display:none}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tiles{grid-template-columns:1fr}
+  .fields{grid-template-columns:1fr}
+  .view{padding:14px}
+  .app-head{flex-wrap:wrap;padding:10px 14px}
+  .menu{order:3;flex-basis:100%}
+  .who .nm{display:none}
+  .app-head{gap:8px}
+  .logo{font-size:13px}
+  .who .btn{padding:6px 8px}
+  .appr-table{display:none}
+  .appr-cards{display:grid}
+  .step span{display:none}
+  .step{min-width:0;justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<div class="proto-bar" role="region" aria-label="프로토타입 조작">
+  <span class="tag">프로토타입 v0.3</span>
+  <nav aria-label="화면 이동" id="protoNav">
+    <a href="#login">로그인</a><a href="#home">홈</a><a href="#order">발주서 등록</a><a href="#approval">결재함</a><a href="#driver">기사 · 오늘의 배송</a><a href="#scm">SCM 배송 현황</a><a href="#track">고객 배송 조회</a><a href="#admin">관리자</a>
+  </nav>
+  <span class="spacer"></span>
+  <div class="seg" role="group" aria-label="기기 미리보기">
+    <button type="button" data-dev="desktop" aria-pressed="true">데스크톱</button>
+    <button type="button" data-dev="tablet" aria-pressed="false">태블릿</button>
+    <button type="button" data-dev="mobile" aria-pressed="false">모바일</button>
+  </div>
+  <label for="roleSel">로그인 역할
+    <select id="roleSel">
+      <option value="sales">영업사원</option>
+      <option value="approver">결재자</option>
+      <option value="scm">SCM 담당</option>
+      <option value="driver">배송기사</option>
+      <option value="admin">IT 관리자</option>
+    </select>
+  </label>
+</div>
+
+<div class="stage">
+<div class="device" id="device" data-device="desktop">
+
+  <header class="app-head" id="appHead">
+    <div class="logo"><span class="logo-mark">G</span>G-SAP Webservice</div>
+    <nav class="menu" id="menu" aria-label="주 메뉴"></nav>
+    <div class="who"><span class="role-chip" id="roleChip"></span><span class="nm" id="whoName"></span><span class="avatar" id="whoAv"></span><button class="btn ghost" type="button" data-go="login">로그아웃</button></div>
+  </header>
+
+  <div class="view" id="view">
+
+  <!-- 로그인 -->
+  <section class="screen" id="scr-login" aria-label="로그인">
+    <div class="login">
+      <div class="login-brand">
+        <div>
+          <div class="logo" style="margin-bottom:28px"><span class="logo-mark" style="background:var(--accent-ink);color:var(--accent)">G</span>G-SAP Webservice</div>
+          <h1>현장에서 바로,<br>SAP 업무를 처리합니다</h1>
+          <p style="margin-top:12px">발주서 등록, 결재, 배송 현황을 VPN 없이 태블릿과 모바일에서 처리합니다. 보이는 메뉴는 SAP 역할에 따라 정해집니다.</p>
+        </div>
+        <ul>
+          <li><span class="pill info" style="background:rgba(255,255,255,.9)">영업</span>현장에서 가맹 발주서 작성·등록</li>
+          <li><span class="pill info" style="background:rgba(255,255,255,.9)">결재</span>발주서·판매가·매입단가 승인</li>
+          <li><span class="pill info" style="background:rgba(255,255,255,.9)">배송</span>배송 단계와 현황 공유 (2차)</li>
+        </ul>
+        <svg class="lines" viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="100" cy="100" r="30"/><circle cx="100" cy="100" r="55"/><circle cx="100" cy="100" r="80"/><circle cx="100" cy="100" r="98"/></g></svg>
+      </div>
+      <div class="login-form">
+        <div class="login-box">
+          <div>
+            <h2>로그인</h2>
+            <p class="note" style="margin:4px 0 0">회사 계정 하나로 로그인합니다. 별도 아이디·비밀번호는 없습니다.</p>
+          </div>
+          <button class="sso" type="button" id="ssoBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 14a3 3 0 1 1 2.83-4H21v3h-2v2h-3v-2H9.83A3 3 0 0 1 7 14Zm0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/></svg>
+            Golfzon 계정으로 로그인
+          </button>
+          <div class="flow" aria-label="로그인 단계"><span>① fs.golfzon.com</span><span>② 추가 인증(MFA)</span><span>③ SAP 역할 확인</span></div>
+          <div class="secure">
+            <b style="color:var(--ink)">보안 안내</b>
+            <span>· 공용 PC에서는 사용 후 반드시 로그아웃하세요.</span>
+            <span>· 30분 동안 사용하지 않으면 자동 로그아웃됩니다. (정책 확정 전 예시)</span>
+            <span>· 접속 기록(시각·IP·처리 내역)이 저장됩니다.</span>
+          </div>
+          <p class="note">로그인이 안 되면 IE팀에 문의하세요. (사내 연락처 표기 예정)</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 홈 -->
+  <section class="screen" id="scr-home" aria-label="홈">
+    <div class="page-title"><div><h1 id="homeHello">안녕하세요</h1><p id="homeSub">내 SAP 역할 기준으로 사용할 수 있는 메뉴만 보입니다.</p></div><span class="sample">예시 데이터</span></div>
+    <div class="kpis" id="homeKpis"></div>
+    <h2 style="font-size:15px;margin:20px 0 10px">바로가기</h2>
+    <div class="tiles" id="homeTiles"></div>
+  </section>
+
+  <!-- 발주서 등록 -->
+  <section class="screen" id="scr-order" aria-label="가맹 발주서 등록">
+    <div class="page-title">
+      <div><h1>가맹 발주서 등록</h1><p>SAP 「가맹 발주서(신규)」 화면 구조를 4단계로 나눴습니다. 금액은 서버에서 다시 검산합니다.</p></div>
+      <div style="display:flex;gap:8px;align-items:center"><span class="pill mute" id="draftState">임시저장 안 됨</span><span class="sample">예시 데이터</span></div>
+    </div>
+    <div class="stepper" role="tablist" aria-label="입력 단계">
+      <button class="step" type="button" data-step="0" aria-current="step"><b>1</b><span>헤더 정보</span></button>
+      <button class="step" type="button" data-step="1"><b>2</b><span>매출 정보</span></button>
+      <button class="step" type="button" data-step="2"><b>3</b><span>품목·개선상품</span></button>
+      <button class="step" type="button" data-step="3"><b>4</b><span>확인·등록</span></button>
+    </div>
+
+    <div class="steppane on" data-pane="0">
+      <div class="card">
+        <h2>발주 기본 <span class="sub">발주서번호는 SAP 등록 후 자동 부여</span></h2>
+        <div class="fields">
+          <div class="field"><label for="f-type">발주유형 <span class="req">*</span></label><select id="f-type"><option>A10 가맹-신규</option><option selected>A20 가맹-증설</option><option>A30 가맹-교체</option></select></div>
+          <div class="field"><label for="f-cdate">계약일자 <span class="req">*</span></label><input id="f-cdate" type="date" value="2026-06-22"></div>
+          <div class="field"><label for="f-status">진행상태</label><input id="f-status" value="작성중" readonly></div>
+          <div class="field span2"><label for="f-store">가맹점 <span class="req">*</span></label><div class="inline"><input id="f-store" value="1002280 구래 디원시티"><button class="btn" type="button">검색</button></div><span class="hint">가맹점 코드·이름 2글자 이상 검색</span></div>
+          <div class="field"><label for="f-ftc">영업진척도번호</label><input id="f-ftc" value="FC20170227017"></div>
+          <div class="field"><label for="f-ddate">납품일자 <span class="req">*</span></label><input id="f-ddate" type="date" value="2026-06-29"></div>
+          <div class="field"><label for="f-dtime">납품시간</label><select id="f-dtime"><option>오전</option><option selected>오후</option></select></div>
+          <div class="field"><label for="f-region">지역 대/중분류</label><div class="inline"><select id="f-region"><option>경기</option><option>서울</option></select><select aria-label="중분류"><option>김포시</option><option>고양시</option></select></div></div>
+          <div class="field span3"><label for="f-addr">상세주소 <span class="req">*</span></label><div class="inline"><input id="f-addr" value="경기 김포시 양촌읍 황금1로 ***"><button class="btn" type="button">주소 검색</button></div><span class="hint">도로명주소 검색으로 입력 (제안 기능)</span></div>
+          <div class="field"><label for="f-int">인테리어업체명</label><input id="f-int" value="제이와이디자인"></div>
+          <div class="field"><label for="f-pos">POS 설치일자</label><input id="f-pos" type="date"></div>
+          <div class="field"><label for="f-so">SO명 / 연락처</label><input id="f-so" value="최*윤 / 010-****-2807"><span class="hint">화면 표시 시 마스킹</span></div>
+          <div class="field"><label for="f-25">2.5톤 진입 가능</label><select id="f-25"><option>가능</option><option selected>불가</option></select></div>
+          <div class="field"><label for="f-pre">선출고 완료여부</label><select id="f-pre"><option>미완료</option><option selected>완료</option></select></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>영업 담당 <span class="sub">로그인 사용자 기준 자동 입력 · 수정 불가</span></h2>
+        <div class="fields">
+          <div class="field"><label for="f-rep">영업담당자</label><input id="f-rep" value="T040063 김*호" readonly></div>
+          <div class="field"><label for="f-office">영업소 / 영업팀</label><input id="f-office" value="1010 GS영업지원팀 / S200 경기사업팀" readonly></div>
+          <div class="field"><label for="f-center">영업센터</label><input id="f-center" value="C030 경기북" readonly></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="steppane" data-pane="1">
+      <div class="card">
+        <h2>매출정보 요약 <span class="sub">부가세·총매출·잔금은 자동 계산</span></h2>
+        <div class="tbl-wrap">
+        <table id="salesTbl">
+          <thead><tr><th>구분</th><th>출하요청일자</th><th>납품</th><th class="r">수량</th><th class="r">총 공급가</th><th class="r">부가세</th><th class="r">총 매출</th><th class="r">계약금+중도금</th><th class="r">잔금</th><th>결제수단</th><th>여신사</th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td colspan="4">합계</td><td class="r num" id="t-sup"></td><td class="r num" id="t-vat"></td><td class="r num" id="t-tot"></td><td class="r num" id="t-dep"></td><td class="r num" id="t-bal"></td><td colspan="2"></td></tr></tfoot>
+        </table>
+        </div>
+        <p class="note" style="margin:10px 0 0">가상계좌: KEB하나은행 ****-****-4337 (마스킹 표시)</p>
+      </div>
+    </div>
+
+    <div class="steppane" data-pane="2">
+      <div class="card">
+        <h2>발주서 품목</h2>
+        <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>순번</th><th>시스템</th><th>납품모델</th><th>모델명</th><th class="r">수량</th><th class="r">단가</th><th class="r">합계</th><th class="r">PM할인</th><th class="r">최종금액</th><th>랙번호</th></tr></thead>
+          <tbody><tr><td class="num">10</td><td>TV NX</td><td class="mono">1000199</td><td>NX_S(M/P)</td><td class="r num">1</td><td class="r num">69,000,000</td><td class="r num">69,000,000</td><td class="r num">18,000,000</td><td class="r num"><b>51,000,000</b></td><td class="mono">GS-24-05-600-88716</td></tr></tbody>
+        </table>
+        </div>
+        <div style="margin-top:10px"><button class="btn" type="button">+ 품목 추가</button></div>
+      </div>
+      <div class="card">
+        <h2>개선상품 진행여부</h2>
+        <div class="fields">
+          <div class="field"><label for="g-int">인테리어</label><select id="g-int"><option>진행</option><option selected>미진행</option></select></div>
+          <div class="field"><label for="g-sig">디지털사이니지</label><select id="g-sig"><option selected>진행</option><option>미진행</option></select></div>
+          <div class="field"><label for="g-sign">간판</label><select id="g-sign"><option selected>진행</option><option>미진행</option></select></div>
+          <div class="field span3"><label for="g-why">미진행 사유 <span class="req">*</span></label><input id="g-why" value="기타 (비고란 사유 기재)"><span class="hint">'미진행'이 하나라도 있으면 필수</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>비고</h2>
+        <div class="fields">
+          <div class="field span3"><label for="n-sys">시스템 비고</label><textarea id="n-sys" rows="3">1. TWOVISION: NX신규 1대(한손형) / 프로젝터 추후 발주 예정
+2. 인테리어 미진행 사유: 협력사 디자인에서 직접 양수도 후 운영</textarea></div>
+          <div class="field span3"><label for="n-pay">입금 비고</label><textarea id="n-pay" rows="3">1. 전체 프로모션: 재구매PM 1000, 수량PM 500, 수량기타PM 300 적용</textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="steppane" data-pane="3">
+      <div class="card">
+        <h2>등록 전 확인</h2>
+        <ul id="checks" style="margin:0;padding-left:18px;display:grid;gap:6px"></ul>
+      </div>
+      <div class="card">
+        <h2>상신 결재선 <span class="sub">SAP 결재선 규칙 조회 결과 (예시)</span></h2>
+        <ol class="timeline">
+          <li><span class="dot on"></span><div><b>작성</b> · 김*호 (영업)</div></li>
+          <li><span class="dot"></span><div><b>1차 승인</b> · 경기사업팀장</div></li>
+          <li><span class="dot"></span><div><b>최종 승인</b> · 영업본부</div></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="form-foot">
+      <button class="btn ghost" type="button" id="prevStep">이전</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" type="button" id="saveDraft">임시저장</button>
+        <button class="btn primary" type="button" id="nextStep">다음</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 결재함 -->
+  <section class="screen" id="scr-approval" aria-label="결재함">
+    <div class="page-title">
+      <div><h1>결재함</h1><p>SAP 「[MM] 단가 변경 승인」 화면 기반. 변경률 ±10% 초과 건은 빨간 표시(기준값 미확정 예시).</p></div>
+      <span class="sample">SAP 캡처 기반 예시 · 상태는 시연용</span>
+    </div>
+    <div class="toolbar">
+      <div class="tabs" role="tablist" aria-label="결재 종류">
+        <button type="button" role="tab" aria-selected="true">매입단가 <span class="cnt" id="cntBuy"></span></button>
+        <button type="button" role="tab" aria-selected="false">판매가 <span class="cnt">3</span></button>
+        <button type="button" role="tab" aria-selected="false">발주서 <span class="cnt">2</span></button>
+      </div>
+      <span class="note">플랜트 2000 (골프존)</span>
+      <span class="spacer" style="flex:1"></span>
+      <button class="btn danger" type="button" id="bulkReject" disabled>반려</button>
+      <button class="btn primary" type="button" id="bulkApprove" disabled>선택 승인</button>
+    </div>
+    <div class="split">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="tbl-wrap appr-table">
+          <table>
+            <thead><tr><th><input type="checkbox" id="chkAll" aria-label="전체 선택"></th><th>상태</th><th>요청번호</th><th>자재 · 공급업체</th><th class="r">현재단가</th><th class="r">변경단가</th><th class="r">변경률</th><th>효력시작</th><th>요청자</th></tr></thead>
+            <tbody id="apprBody"></tbody>
+          </table>
+        </div>
+        <div class="appr-cards" id="apprCards" style="padding:12px"></div>
+      </div>
+      <aside class="card" id="apprDetail" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <!-- 기사 -->
+  <section class="screen" id="scr-driver" aria-label="오늘의 배송">
+    <div class="page-title"><div><h1>오늘의 배송</h1><p>2026-11-16 · 차량 경기 12가 ****</p></div><span class="sample">예시 데이터</span></div>
+    <div class="consent" style="margin-bottom:14px">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="flex:none;margin-top:2px"><path fill="var(--accent)" d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7Zm0 4.5A2.5 2.5 0 1 0 12 11.5 2.5 2.5 0 0 0 12 6.5Z"/></svg>
+      <div><b>위치는 버튼을 누를 때만 1회 기록됩니다.</b><br>근무 중 배송 건에 한해 수집하며, 보관기간이 지나면 자동 삭제됩니다. <a href="#driver" id="myLog">내 위치 기록 보기</a></div>
+    </div>
+    <div class="grid" id="stops"></div>
+  </section>
+
+  <!-- SCM -->
+  <section class="screen" id="scr-scm" aria-label="SCM 배송 현황">
+    <div class="page-title"><div><h1>배송 현황</h1><p>기사 단계 이벤트 기준. 마지막 위치는 이벤트 시점의 위치입니다.</p></div><span class="sample">예시 데이터</span></div>
+    <div class="kpis" style="margin-bottom:16px">
+      <div class="card kpi"><div class="k">오늘 배송</div><div class="v num">14</div><div class="d">차량 3대</div></div>
+      <div class="card kpi"><div class="k">진행 중</div><div class="v num">5</div><div class="d">출발~도착 사이</div></div>
+      <div class="card kpi"><div class="k">완료</div><div class="v num">7</div><div class="d">증빙 사진 6건</div></div>
+      <div class="card kpi"><div class="k">지연 의심</div><div class="v num" style="color:var(--warn)">2</div><div class="d">예정 대비 60분 이상 (예시 기준)</div></div>
+    </div>
+    <div class="board">
+      <div class="card">
+        <h2>경기권 라우트 <span class="sub">개략도 · 실제 지도 API는 2차에서 선정</span></h2>
+        <svg class="route" viewBox="0 0 520 300" role="img" aria-label="물류센터에서 4개 배송지로 이어지는 라우트 개략도">
+          <g fill="none" stroke="var(--line)" stroke-width="2"><path d="M60 240 C140 230 150 160 210 150 S330 120 360 90 S450 70 470 60"/></g>
+          <g fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"><path d="M60 240 C140 230 150 160 210 150 S300 130 320 112"/></g>
+          <g font-size="12" fill="var(--ink)">
+            <rect x="40" y="228" width="40" height="24" rx="6" fill="var(--ink)"/><text x="60" y="244" text-anchor="middle" fill="var(--surface)" font-weight="700">센터</text>
+            <circle cx="150" cy="200" r="9" fill="var(--accent)"/><text x="150" y="204" text-anchor="middle" fill="var(--accent-ink)" font-size="10" font-weight="700">1</text><text x="164" y="196">○○점 완료</text>
+            <circle cx="210" cy="150" r="9" fill="var(--accent)"/><text x="210" y="154" text-anchor="middle" fill="var(--accent-ink)" font-size="10" font-weight="700">2</text><text x="190" y="132">구래 디원시티 완료</text>
+            <circle cx="320" cy="112" r="11" fill="var(--warn)"/><text x="320" y="116" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">3</text><text x="336" y="128">△△점 · 14:20 출발</text>
+            <circle cx="470" cy="60" r="9" fill="var(--surface)" stroke="var(--muted)" stroke-width="2"/><text x="470" y="64" text-anchor="middle" fill="var(--muted)" font-size="10" font-weight="700">4</text><text x="410" y="44">□□점 예정</text>
+          </g>
+        </svg>
+      </div>
+      <div class="card">
+        <h2>차량별 진행</h2>
+        <div class="veh"><div style="display:flex;justify-content:space-between"><b>경기 12가 ****</b><span class="pill wait">이동 중 3/4</span></div><div class="bar"><i style="width:62%"></i></div><span class="note">마지막 이벤트 14:20 출발 · △△점</span></div>
+        <div class="veh"><div style="display:flex;justify-content:space-between"><b>서울 34나 ****</b><span class="pill no">지연 의심</span></div><div class="bar"><i class="late" style="width:30%"></i></div><span class="note">마지막 이벤트 11:05 도착 · 예정보다 75분 경과</span></div>
+        <div class="veh"><div style="display:flex;justify-content:space-between"><b>인천 56다 ****</b><span class="pill ok">완료 6/6</span></div><div class="bar"><i style="width:100%"></i></div><span class="note">13:40 전체 완료</span></div>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <h2>VOC 빠른 응대 <span class="sub">발주서번호 또는 가맹점명으로 조회</span></h2>
+        <form class="toolbar" id="vocForm" style="margin:0">
+          <div class="field" style="flex:1;min-width:200px"><label for="vocQ">발주서번호 / 가맹점</label><input id="vocQ" value="9229"></div>
+          <button class="btn primary" type="submit" style="align-self:flex-end">조회</button>
+        </form>
+        <div id="vocOut" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 고객 조회 -->
+  <section class="screen" id="scr-track" aria-label="고객 배송 조회">
+    <div class="track">
+      <div class="logo"><span class="logo-mark">G</span>Golfzon 배송 조회</div>
+      <div class="card" style="display:grid;gap:14px">
+        <span class="note">발주서 9229 · 구래 디원시티</span>
+        <div class="big">배송 중입니다. 앞 배송지 1곳 남았습니다.</div>
+        <div class="stages"><div class="on">출고</div><div class="on">배송 출발</div><div>도착</div><div>설치 완료</div></div>
+        <dl class="kv"><dt>예정일</dt><dd>2026-06-29 오후</dd><dt>담당 기사</dt><dd>이*수 · 연락은 SCM 대표번호로</dd><dt>최근 갱신</dt><dd>14:20 배송 출발</dd></dl>
+      </div>
+      <p class="note" style="text-align:center">이 링크는 발급 후 24시간 동안만 열립니다(예시). 정확한 좌표는 표시하지 않습니다.</p>
+    </div>
+  </section>
+
+  <!-- 관리자 -->
+  <section class="screen" id="scr-admin" aria-label="관리자">
+    <div class="page-title"><div><h1>관리자</h1><p>웹 화면 ↔ SAP T-CODE 매핑과 감사 로그</p></div><span class="sample">예시 데이터 · T-CODE는 확정 전 자리표시</span></div>
+    <div class="grid" style="grid-template-columns:minmax(0,1fr)">
+      <div class="card">
+        <h2>화면 매핑 <span class="sub">AGR_TCODES의 T-CODE가 아래와 일치하면 메뉴 노출</span></h2>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>화면 ID</th><th>화면명</th><th>SAP T-CODE</th><th>단계</th><th>사용</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">SCR-11</td><td>가맹 발주서 등록</td><td class="mono">Z****(확정 필요)</td><td>1차</td><td><span class="pill ok">사용</span></td></tr>
+            <tr><td class="mono">SCR-20</td><td>결재함 · 매입단가</td><td class="mono">Z****(확정 필요)</td><td>1차</td><td><span class="pill ok">사용</span></td></tr>
+            <tr><td class="mono">SCR-20</td><td>결재함 · 판매가</td><td class="mono">Z****(확정 필요)</td><td>1차</td><td><span class="pill ok">사용</span></td></tr>
+            <tr><td class="mono">SCR-31</td><td>배송 현황</td><td class="mono">Z****(확정 필요)</td><td>2차</td><td><span class="pill mute">대기</span></td></tr>
+          </tbody></table></div>
+      </div>
+      <div class="card">
+        <h2>감사 로그 <span class="sub">최근 처리 · 보관기간 정책 확정 필요</span></h2>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>시각</th><th>사용자</th><th>IP</th><th>화면</th><th>처리</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td class="num">11-16 14:22:05</td><td>정*은</td><td class="mono">***.***.12.40</td><td>결재함</td><td>승인 3000003845</td><td><span class="pill ok">성공</span></td></tr>
+            <tr><td class="num">11-16 14:10:51</td><td>김*호</td><td class="mono">***.***.88.3</td><td>발주서 등록</td><td>등록 9229</td><td><span class="pill ok">성공</span></td></tr>
+            <tr><td class="num">11-16 13:58:17</td><td>박*용</td><td class="mono">***.***.7.211</td><td>결재함</td><td>메뉴 접근</td><td><span class="pill no">권한 없음 차단</span></td></tr>
+          </tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 권한 없음 -->
+  <section class="screen" id="scr-denied" aria-label="권한 없음">
+    <div class="card denied">
+      <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><path fill="var(--bad)" d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Zm-1 6h2v6h-2V8Zm0 8h2v2h-2v-2Z"/></svg>
+      <h2 style="font-size:18px">이 화면을 볼 권한이 없습니다</h2>
+      <p class="note" style="max-width:44ch;margin:0">내 SAP 역할에 이 화면의 T-CODE가 없습니다. 메뉴를 숨기는 것과 별도로 서버와 SAP에서도 요청을 차단하며, 시도는 감사 로그에 남습니다.</p>
+      <button class="btn primary" type="button" data-go="home">홈으로</button>
+    </div>
+  </section>
+
+  </div>
+</div>
+</div>
+
+<div class="dlg-back" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dlg">
+    <h2 id="dlgTitle" style="font-size:17px">반려 사유</h2>
+    <p class="note" id="dlgDesc" style="margin:0"></p>
+    <label for="dlgReason" class="note">사유 (필수, 5자 이상)</label>
+    <textarea id="dlgReason"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" type="button" id="dlgCancel">취소</button><button class="btn danger" type="button" id="dlgOk">반려</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const won = n => Math.round(n).toLocaleString('ko-KR');
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const MENUS = {
+    home: {label:'홈', desc:'오늘 할 일 요약'},
+    order: {label:'발주서 등록', desc:'현장에서 가맹 발주서 작성', src:'SAP 가맹 발주서(신규)'},
+    approval: {label:'결재함', desc:'발주서·판매가·매입단가 승인', src:'SAP [MM] 단가 변경 승인 외'},
+    driver: {label:'오늘의 배송', desc:'배송 단계 버튼', src:'신규 (2차)'},
+    scm: {label:'배송 현황', desc:'차량별 진행·VOC 응대', src:'신규 (2차)'},
+    admin: {label:'관리자', desc:'화면 매핑·감사 로그', src:'웹 전용'}
+  };
+  const ROLES = {
+    sales: {label:'영업사원', name:'김*호', av:'김', menus:['home','order'], kpis:[['임시저장','2','이어서 작성'],['상신 대기','1','결재 진행 중'],['이번 달 등록','8','건'],['반려','0','건']]},
+    approver: {label:'결재자', name:'정*은', av:'정', menus:['home','approval'], kpis:[['결재 대기','15','매입단가 10 · 판매가 3 · 발주서 2'],['변경률 경고','4','±10% 초과'],['오늘 처리','3','건'],['평균 대기','—','측정 예정']]},
+    scm: {label:'SCM 담당', name:'한*진', av:'한', menus:['home','scm'], kpis:[['오늘 배송','14','차량 3대'],['진행 중','5','건'],['지연 의심','2','건'],['오늘 VOC','—','측정 예정']]},
+    driver: {label:'배송기사', name:'이*수', av:'이', menus:['driver'], kpis:[]},
+    admin: {label:'IT 관리자', name:'양*기', av:'양', menus:['home','order','approval','scm','admin'], kpis:[['오늘 접속','42','명'],['권한 차단','1','건'],['EAI 오류','0','건'],['평균 응답','—','측정 예정']]}
+  };
+  let role = 'sales';
+
+  /* ---------- 라우팅 ---------- */
+  const PUBLIC = ['login','track'];
+  const ALL = ['login','home','order','approval','driver','scm','track','admin'];
+  function route(){
+    let h = (location.hash || '#login').slice(1);
+    if (!ALL.includes(h)) h = 'login';
+    let target = h;
+    if (!PUBLIC.includes(h) && !ROLES[role].menus.includes(h)) target = 'denied';
+    $$('.screen').forEach(s => s.classList.toggle('on', s.id === 'scr-' + target));
+    $('#appHead').style.display = PUBLIC.includes(h) ? 'none' : '';
+    $('#view').style.padding = h === 'login' ? '0' : '';
+    $$('#protoNav a').forEach(a => { if (a.getAttribute('href') === '#' + h) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+    $$('#menu a').forEach(a => a.classList.toggle('on', a.dataset.k === h));
+  }
+  function renderShell(){
+    const r = ROLES[role];
+    $('#roleChip').textContent = r.label;
+    $('#whoName').textContent = r.name;
+    $('#whoAv').textContent = r.av;
+    $('#menu').innerHTML = r.menus.map(k => `<a href="#${k}" data-k="${k}">${esc(MENUS[k].label)}</a>`).join('');
+    $('#homeHello').textContent = `안녕하세요, ${r.name} 님`;
+    $('#homeKpis').innerHTML = r.kpis.map(k => `<div class="card kpi"><div class="k">${esc(k[0])}</div><div class="v num">${esc(k[1])}</div><div class="d">${esc(k[2])}</div></div>`).join('');
+    $('#homeTiles').innerHTML = ['order','approval','driver','scm','admin'].map(k => {
+      const ok = r.menus.includes(k);
+      return `<a class="tile${ok ? '' : ' locked'}" href="#${k}" ${ok ? '' : 'aria-disabled="true" tabindex="-1"'}><span class="t">${esc(MENUS[k].label)}</span><span>${esc(MENUS[k].desc)}</span><span class="src">${ok ? '참고: ' + esc(MENUS[k].src) : '내 역할에 없는 메뉴 (실서비스에서는 숨김)'}</span></a>`;
+    }).join('');
+    route();
+  }
+  $('#roleSel').addEventListener('change', e => { role = e.target.value; renderShell(); });
+  window.addEventListener('hashchange', route);
+  document.addEventListener('click', e => {
+    const g = e.target.closest('[data-go]');
+    if (g) { e.preventDefault(); location.hash = g.dataset.go; }
+  });
+  $('#ssoBtn').addEventListener('click', () => {
+    toast('fs.golfzon.com → MFA → SAP 역할 확인 완료 (시뮬레이션)');
+    location.hash = ROLES[role].menus[0];
+  });
+
+  /* ---------- 기기 전환 ---------- */
+  $$('.seg button').forEach(b => b.addEventListener('click', () => {
+    $$('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    $('#device').dataset.device = b.dataset.dev;
+  }));
+
+  /* ---------- 토스트 ---------- */
+  let tt;
+  function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2800); }
+
+  /* ---------- 발주서 ---------- */
+  const SALES = [
+    {k:'TV NX', d:'2026-06-29', t:'PM', q:1, sup:51000000, dep:20400000, pay:'P3 무이자', cr:'메리츠캐피탈'},
+    {k:'TV PLUS', d:'', t:'', q:0, sup:0, dep:0, pay:'P1 일시불', cr:''},
+    {k:'TV NXP', d:'', t:'', q:0, sup:0, dep:0, pay:'P1 일시불', cr:''},
+    {k:'GDR PLUS', d:'', t:'', q:0, sup:0, dep:0, pay:'P1 일시불', cr:''},
+    {k:'GDR X', d:'', t:'', q:0, sup:0, dep:0, pay:'P1 일시불', cr:''}
+  ];
+  function renderSales(){
+    $('#salesTbl tbody').innerHTML = SALES.map((r, i) => {
+      const vat = r.sup * 0.1, tot = r.sup + vat, bal = tot - r.dep;
+      return `<tr><td><b>${esc(r.k)}</b></td><td class="num">${esc(r.d || '—')}</td><td>${esc(r.t || '—')}</td>
+      <td class="r"><input type="number" min="0" step="1" value="${r.q}" data-i="${i}" data-f="q" aria-label="${esc(r.k)} 수량" style="width:60px"></td>
+      <td class="r"><input inputmode="numeric" value="${won(r.sup)}" data-i="${i}" data-f="sup" aria-label="${esc(r.k)} 총 공급가"></td>
+      <td class="r num">${won(vat)}</td><td class="r num"><b>${won(tot)}</b></td>
+      <td class="r"><input inputmode="numeric" value="${won(r.dep)}" data-i="${i}" data-f="dep" aria-label="${esc(r.k)} 계약금+중도금"></td>
+      <td class="r num${bal < 0 ? '' : ''}" style="${bal < 0 ? 'color:var(--bad);font-weight:700' : ''}">${won(bal)}</td>
+      <td>${esc(r.pay)}</td><td>${esc(r.cr || '—')}</td></tr>`;
+    }).join('');
+    const s = SALES.reduce((a, r) => { a.sup += r.sup; a.dep += r.dep; return a; }, {sup:0, dep:0});
+    const vat = s.sup * 0.1, tot = s.sup + vat;
+    $('#t-sup').textContent = won(s.sup); $('#t-vat').textContent = won(vat); $('#t-tot').textContent = won(tot);
+    $('#t-dep').textContent = won(s.dep); $('#t-bal').textContent = won(tot - s.dep);
+  }
+  $('#salesTbl').addEventListener('change', e => {
+    const el = e.target; if (!el.dataset.f) return;
+    const v = Number(String(el.value).replace(/[^0-9]/g, '')) || 0;
+    SALES[Number(el.dataset.i)][el.dataset.f] = v;
+    renderSales();
+  });
+  let step = 0;
+  function setStep(n){
+    step = Math.max(0, Math.min(3, n));
+    $$('.step').forEach((b, i) => { b.toggleAttribute('aria-current', false); if (i === step) b.setAttribute('aria-current','step'); b.classList.toggle('done', i < step); });
+    $$('.steppane').forEach((p, i) => p.classList.toggle('on', i === step));
+    $('#prevStep').disabled = step === 0;
+    $('#nextStep').textContent = step === 3 ? '등록 및 상신' : '다음';
+    if (step === 3) renderChecks();
+  }
+  function renderChecks(){
+    const s = SALES.reduce((a, r) => { a.sup += r.sup; a.dep += r.dep; return a; }, {sup:0, dep:0});
+    const tot = s.sup * 1.1;
+    const items = [
+      [true, '필수 항목 입력 완료 (발주유형, 계약일자, 가맹점, 납품일자, 상세주소)'],
+      [s.sup === 51000000, `품목 최종금액 합계 51,000,000 = 매출 총 공급가 ${won(s.sup)}`],
+      [tot - s.dep >= 0, `잔금 ${won(tot - s.dep)} (음수 불가)`],
+      [true, '미진행 개선상품 사유 입력됨']
+    ];
+    $('#checks').innerHTML = items.map(([ok, t]) => `<li><span class="pill ${ok ? 'ok' : 'no'}">${ok ? '통과' : '확인 필요'}</span> ${esc(t)}</li>`).join('');
+    $('#nextStep').disabled = !items.every(x => x[0]);
+  }
+  $$('.step').forEach(b => b.addEventListener('click', () => setStep(Number(b.dataset.step))));
+  $('#prevStep').addEventListener('click', () => setStep(step - 1));
+  $('#nextStep').addEventListener('click', () => {
+    if (step < 3) { setStep(step + 1); return; }
+    $('#f-status').value = 'G승인 대기';
+    $('#draftState').className = 'pill info'; $('#draftState').textContent = 'SAP 발주서 9229 · 상신됨';
+    toast('SAP 발주서번호 9229 생성, 결재 상신 완료 (예시)');
+  });
+  $('#saveDraft').addEventListener('click', () => {
+    const t = new Date();
+    $('#draftState').className = 'pill ok';
+    $('#draftState').textContent = `임시저장 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')} (서버)`;
+    toast('서버에 임시저장했습니다. 다른 기기에서도 이어서 작성할 수 있습니다.');
+  });
+
+  /* ---------- 결재함 ---------- */
+  const APPR = [
+    {no:'3000003843', mat:'3001924', name:"글로벌 향 NX PC 본체 단품 ASS'Y(악세 포함)_한손", ven:'(주)라인디지텔', org:'2010', cur:813000, nw:2211000, from:'2026-01-07', why:'PC 인텔 코어_램_파워_윈도우11 단가 인상으로 인한 변경 요청', req:'김*환', rd:'2026-01-07'},
+    {no:'3000003844', mat:'3001925', name:"글로벌 향 NX PC 본체 단품 ASS'Y(악세 포함)_양손", ven:'(주)라인디지텔', org:'2010', cur:1036400, nw:2425000, from:'2026-01-07', why:'PC 인텔 코어_램_파워_윈도우11 단가 인상으로 인한 변경 요청', req:'김*환', rd:'2026-01-07'},
+    {no:'3000003845', mat:'4001621', name:'NEW_골프존파크 로고볼_메탈릭실버(300EA)', ven:'(주)에이지티', org:'2020', cur:170000, nw:165000, from:'2026-01-08', why:'비즈몰 신규 상품 출시', req:'박*용', rd:'2026-01-08'},
+    {no:'3000003856', mat:'3002047', name:'RX_그레이 방염 스크린(완장)', ven:'(주)에스엔에스', org:'2010', cur:142800, nw:136000, from:'2026-01-01', why:'신규 코드 생성', req:'손*민', rd:'2026-01-19'},
+    {no:'3000003859', mat:'3001301', name:'GDR+ 키오스크(BLACK)_사급', ven:'주식회사 플러스 하이테크', org:'2010', cur:631730, nw:601800, from:'2025-12-01', why:'환율 변동으로 인한 인상 반영', req:'손*민', rd:'2026-01-22'},
+    {no:'3000003876', mat:'3002057', name:'T1NX_PC본체', ven:'(주)라인디지텔', org:'2010', cur:1190400, nw:3132500, from:'2026-01-01', why:'신규 자재', req:'김*환', rd:'2026-01-27'},
+    {no:'3000003882', mat:'3001560', name:"NX_PC본체 ASS'Y(한손/양손)", ven:'(주)라인디지텔', org:'2010', cur:959500, nw:968500, from:'2026-02-01', why:'사급자재 투입에 따른 PC본체 가격 변경', req:'김*환', rd:'2026-01-28'},
+    {no:'3000003890', mat:'4001602', name:'[비즈몰] 골프존파크 로고화 5족 (남성)(대량구매)', ven:'(주)휴리체', org:'2020', cur:22800, nw:120800, from:'2026-02-02', why:'비즈몰 이벤트로 인한 단가변경', req:'송*', rd:'2026-01-30'},
+    {no:'3000003899', mat:'3001365', name:'[PKG] 골프존파크 로고 클럽 거치대', ven:'주식회사 지엔지네트웍스', org:'2020', cur:104500, nw:103227, from:'2026-02-02', why:'비즈몰 이벤트로 인한 단가변경', req:'송*', rd:'2026-02-03'},
+    {no:'3000003903', mat:'4001285', name:'골프존파크 멀티충전기 5호 (고속지원)', ven:'주식회사 지엔지네트웍스', org:'2020', cur:16600, nw:16364, from:'2026-02-02', why:'비즈몰 이벤트로 인한 단가변경', req:'송*', rd:'2026-02-03'}
+  ].map(r => ({...r, st:'wait', pct:(r.nw - r.cur) / r.cur * 100}));
+  const sel = new Set();
+  let focusNo = APPR[0].no;
+  const LIMIT = 10;
+  const stPill = st => st === 'ok' ? '<span class="pill ok">승인완료</span>' : st === 'no' ? '<span class="pill no">반려</span>' : '<span class="pill wait">승인대기</span>';
+  const pctTxt = p => `${p > 0 ? '+' : ''}${p.toFixed(1)}%`;
+  function renderAppr(){
+    const waiting = APPR.filter(r => r.st === 'wait').length;
+    $('#cntBuy').textContent = waiting;
+    $('#apprBody').innerHTML = APPR.map(r => {
+      const flag = Math.abs(r.pct) > LIMIT;
+      return `<tr class="${flag ? 'flag' : ''} ${sel.has(r.no) ? 'sel' : ''}" data-no="${r.no}" style="cursor:pointer">
+        <td><input type="checkbox" data-chk="${r.no}" ${sel.has(r.no) ? 'checked' : ''} ${r.st !== 'wait' ? 'disabled' : ''} aria-label="${r.no} 선택"></td>
+        <td>${stPill(r.st)}</td><td class="mono">${r.no}</td>
+        <td><div style="max-width:220px;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div><span class="note"><span class="mono">${r.mat}</span> · ${esc(r.ven)}</span></td><td class="r num">${won(r.cur)}</td><td class="r num"><b>${won(r.nw)}</b></td>
+        <td class="r num delta ${r.pct > 0 ? 'up' : 'down'}">${flag ? '▲ ' : ''}${pctTxt(r.pct)}</td>
+        <td class="num">${r.from}</td><td>${esc(r.req)}</td></tr>`;
+    }).join('');
+    $('#apprCards').innerHTML = APPR.map(r => {
+      const flag = Math.abs(r.pct) > LIMIT;
+      return `<div class="card appr-card ${flag ? 'flag' : ''}" data-no="${r.no}">
+        <div class="row"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-chk="${r.no}" ${sel.has(r.no) ? 'checked' : ''} ${r.st !== 'wait' ? 'disabled' : ''}><span class="mono">${r.no}</span></label>${stPill(r.st)}</div>
+        <b>${esc(r.name)}</b><span class="note">${esc(r.ven)} · 요청 ${esc(r.req)}</span>
+        <div class="row num"><span>${won(r.cur)} → <b>${won(r.nw)}</b></span><span class="delta ${r.pct > 0 ? 'up' : 'down'}">${pctTxt(r.pct)}</span></div></div>`;
+    }).join('');
+    $('#chkAll').checked = sel.size > 0 && sel.size === APPR.filter(r => r.st === 'wait').length;
+    $('#bulkApprove').disabled = sel.size === 0; $('#bulkReject').disabled = sel.size === 0;
+    $('#bulkApprove').textContent = sel.size ? `선택 ${sel.size}건 승인` : '선택 승인';
+    renderDetail();
+  }
+  function renderDetail(){
+    const r = APPR.find(x => x.no === focusNo); if (!r) return;
+    const flag = Math.abs(r.pct) > LIMIT;
+    $('#apprDetail').innerHTML = `<h2>요청 상세 ${stPill(r.st)}</h2>
+      <dl class="kv"><dt>요청번호</dt><dd class="mono">${r.no}</dd><dt>자재</dt><dd>${esc(r.name)} <span class="note mono">(${r.mat})</span></dd>
+      <dt>공급업체</dt><dd>${esc(r.ven)}</dd><dt>구매조직</dt><dd>${r.org} · 조건범주 표준</dd>
+      <dt>단가</dt><dd class="num">${won(r.cur)} → <b>${won(r.nw)}</b> KRW <span class="delta ${r.pct > 0 ? 'up' : 'down'}">(${pctTxt(r.pct)})</span></dd>
+      <dt>효력시작일</dt><dd>${r.from}</dd><dt>변경사유</dt><dd>${esc(r.why)}</dd><dt>요청</dt><dd>${esc(r.req)} · ${r.rd}</dd></dl>
+      ${flag ? '<p class="pill no" style="margin:12px 0 0;display:inline-block">변경률 기준 초과 · 사유 확인 권장</p>' : ''}
+      <h2 style="margin-top:16px">처리 이력</h2>
+      <ol class="timeline"><li><span class="dot on"></span><div>상신 · ${esc(r.req)} · ${r.rd}</div></li>
+      <li><span class="dot ${r.st !== 'wait' ? 'on' : ''}"></span><div>${r.st === 'ok' ? '승인 · 정*은 (웹)' : r.st === 'no' ? '반려 · 정*은 (웹)' : '승인 대기'}</div></li>
+      <li><span class="dot ${r.st === 'ok' ? 'on' : ''}"></span><div>${r.st === 'ok' ? 'SAP Info Record 반영 (번호 회신 예시)' : 'SAP Info Record 반영'}</div></li></ol>
+      ${r.st === 'wait' ? `<div style="display:flex;gap:8px;margin-top:16px"><button class="btn danger" type="button" data-one="no">반려</button><button class="btn primary" type="button" data-one="ok" style="flex:1">승인</button></div>` : ''}`;
+  }
+  function onApprClick(e){
+    const c = e.target.closest('[data-chk]');
+    if (c) { e.stopPropagation(); c.checked ? sel.add(c.dataset.chk) : sel.delete(c.dataset.chk); renderAppr(); return; }
+    const row = e.target.closest('[data-no]');
+    if (row) { focusNo = row.dataset.no; renderDetail(); }
+  }
+  $('#apprBody').addEventListener('click', onApprClick);
+  $('#apprCards').addEventListener('click', onApprClick);
+  $('#chkAll').addEventListener('change', e => { sel.clear(); if (e.target.checked) APPR.filter(r => r.st === 'wait').forEach(r => sel.add(r.no)); renderAppr(); });
+  function decide(nos, st){
+    nos.forEach(no => { const r = APPR.find(x => x.no === no); if (r && r.st === 'wait') r.st = st; sel.delete(no); });
+    renderAppr();
+    toast(`${nos.length}건 ${st === 'ok' ? '승인' : '반려'} 처리 · SAP 반영 및 감사 로그 기록 (시뮬레이션)`);
+  }
+  let pending = [];
+  function askReject(nos){
+    pending = nos; $('#dlgReason').value = ''; $('#dlgDesc').textContent = `${nos.length}건을 반려합니다. 사유는 요청자에게 전달됩니다.`;
+    $('#dlg').classList.add('on'); $('#dlgReason').focus();
+  }
+  $('#bulkApprove').addEventListener('click', () => decide([...sel], 'ok'));
+  $('#bulkReject').addEventListener('click', () => askReject([...sel]));
+  $('#apprDetail').addEventListener('click', e => {
+    const b = e.target.closest('[data-one]'); if (!b) return;
+    b.dataset.one === 'ok' ? decide([focusNo], 'ok') : askReject([focusNo]);
+  });
+  $('#dlgCancel').addEventListener('click', () => $('#dlg').classList.remove('on'));
+  $('#dlgOk').addEventListener('click', () => {
+    if ($('#dlgReason').value.trim().length < 5) { toast('반려 사유를 5자 이상 입력하세요.'); return; }
+    $('#dlg').classList.remove('on'); decide(pending, 'no');
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#dlg').classList.remove('on'); });
+
+  /* ---------- 기사 ---------- */
+  const STOPS = [
+    {name:'○○점', addr:'경기 고양시 덕양구 ***', item:'GDR PLUS 1식', st:3, t:['09:10','09:52','10:40']},
+    {name:'구래 디원시티', addr:'경기 김포시 양촌읍 황금1로 ***', item:'TV NX 1식', st:3, t:['11:00','11:35','13:05']},
+    {name:'△△점', addr:'경기 김포시 ***', item:'TV PLUS 2식', st:1, t:['14:20']},
+    {name:'□□점', addr:'경기 파주시 ***', item:'부자재', st:0, t:[]}
+  ];
+  const ACT = ['출발','도착','완료'];
+  function renderStops(){
+    $('#stops').innerHTML = STOPS.map((s, i) => `<div class="card stop">
+      <div class="head"><div style="display:flex;gap:10px;align-items:center"><span class="seq">${i + 1}</span><div><b>${esc(s.name)}</b><div class="note">${esc(s.addr)}</div></div></div>
+      ${s.st === 3 ? '<span class="pill ok">완료</span>' : s.st === 0 ? '<span class="pill mute">예정</span>' : '<span class="pill wait">' + ACT[s.st - 1] + '</span>'}</div>
+      <div class="note">${esc(s.item)}</div>
+      <div class="acts">${ACT.map((a, j) => `<button class="btn ${j === s.st ? 'primary' : ''}" type="button" data-stop="${i}" data-act="${j}" ${j !== s.st ? 'disabled' : ''}>${a}${s.t[j] ? ' ' + s.t[j] : ''}</button>`).join('')}</div>
+      ${s.st > 0 ? `<div class="loc">마지막 기록: ${ACT[s.st - 1]} ${s.t[s.st - 1]} · 위치 1회 기록됨</div>` : ''}</div>`).join('');
+  }
+  $('#stops').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const s = STOPS[Number(b.dataset.stop)], j = Number(b.dataset.act);
+    const t = new Date(); s.t[j] = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`; s.st = j + 1;
+    renderStops();
+    toast(`${ACT[j]} 기록 · 위치 1회 수집 (프로토타입은 시뮬레이션) · SAP 배송상태 갱신`);
+  });
+  $('#myLog').addEventListener('click', e => { e.preventDefault(); toast('본인 위치 기록 열람 화면 (2차 설계 예정)'); });
+
+  /* ---------- VOC ---------- */
+  $('#vocForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const q = $('#vocQ').value.trim();
+    if (q.length < 2) { $('#vocOut').innerHTML = '<p class="note" style="color:var(--bad)">2글자 이상 입력하세요.</p>'; return; }
+    $('#vocOut').innerHTML = `<div class="card" style="box-shadow:none;background:var(--surface-2);display:grid;gap:8px">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><b>발주서 9229 · 구래 디원시티</b><span class="pill ok">설치 완료 13:05</span></div>
+      <span class="note">차량 경기 12가 **** · 2번째 배송지 · 완료 사진 1장</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="copyLink">고객 조회 링크 복사</button><a class="btn" href="#track" style="text-decoration:none">고객 화면 미리보기</a></div></div>`;
+    $('#copyLink').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText('https://(서비스도메인)/t/만료형토큰'); toast('예시 링크를 복사했습니다 (24시간 만료형).'); }
+      catch { toast('복사가 차단되었습니다. 실서비스에서는 문자로 바로 발송합니다.'); }
+    });
+  });
+
+  renderSales(); setStep(0); renderAppr(); renderStops(); renderShell();
+})();
+</script>
+</body>
+</html>
